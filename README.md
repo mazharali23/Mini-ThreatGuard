@@ -1,3 +1,9 @@
+![Platform](https://img.shields.io/badge/platform-RHEL%2010-red)
+![Docker](https://img.shields.io/badge/containerized-Docker-blue)
+![AI](https://img.shields.io/badge/AI-Ollama-green)
+![Workflow](https://img.shields.io/badge/automation-n8n-orange)
+![Database](https://img.shields.io/badge/database-PostgreSQL-blue)
+
 # 🛡️ Mini-ThreatGuard
 
 AI-powered SOC automation and threat intelligence pipeline built using **n8n, Ollama, PostgreSQL, Docker, and Telegram**.
