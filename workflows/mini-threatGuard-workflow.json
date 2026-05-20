@@ -1,0 +1,328 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://services.nvd.nist.gov/rest/json/cves/2.0",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -64,
+        -128
+      ],
+      "id": "de8fa022-519d-4266-9f95-9b719559c5bd",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -208,
+        -112
+      ],
+      "id": "88516391-a25b-4677-be20-64fb3bafa44a",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const vulns = $json.vulnerabilities;\n\nreturn vulns.map(v => {\n  return {\n    json: {\n      cve: v.cve.id,\n      published: v.cve.published,\n      severity: v.cve.metrics?.cvssMetricV31?.[0]?.cvssData?.baseSeverity || \"UNKNOWN\",\n      score: v.cve.metrics?.cvssMetricV31?.[0]?.cvssData?.baseScore || 0,\n      description: v.cve.descriptions?.[0]?.value || \"No description\"\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        112,
+        -144
+      ],
+      "id": "99224ddd-8550-4f2c-9a75-1042a90307c6",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "673685d4-40ed-44ee-92fb-35f4614243e1",
+              "leftValue": "={{ $json.score }}",
+              "rightValue": 9,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        512,
+        -224
+      ],
+      "id": "de5be961-cc99-4397-85c1-9e37f4093a78",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://192.168.192.129:11434/api/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  \"model\": \"tinyllama\",\n  \"prompt\": \"Explain this critical CVE like a security analyst: \" + $json.description,\n  \"stream\": false\n}\n}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1136,
+        -288
+      ],
+      "id": "709ee25e-12e8-41ba-9e3a-a4a7adc2fa21",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        704,
+        -224
+      ],
+      "id": "e8fc75f6-3e77-4a55-8af1-e733dc565d6f",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        912,
+        -224
+      ],
+      "id": "1e194882-74a3-4f9e-8bfd-4ff14aac72d4",
+      "name": "Wait",
+      "webhookId": "7abce2f0-7542-4096-af57-07edd257901c"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.filter(item => item.json.score >= 9);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        -144
+      ],
+      "id": "00343a8b-c1f4-4753-8651-1e167bc46b2e",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiResponse = $json.response;\n\nconst original = $('Code in JavaScript').first().json;\n\nreturn [\n  {\n    json: {\n      alert:\n`🚨 CRITICAL CVE ALERT 🚨\n\nCVE: ${original.cve}\n\nSeverity: ${original.severity}\n\nCVSS Score: ${original.score}\n\nPublished: ${original.published}\n\nDescription:\n${original.description}\n\nAI Analysis:\n${aiResponse}\n\nRecommended Action:\nPatch immediately and investigate exposure.`\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        -288
+      ],
+      "id": "6305873e-501f-4e6f-a5ef-03786cd8e3ab",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT NOW();\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1552,
+        -304
+      ],
+      "id": "f7adeb0c-9543-4620-b4f5-c34ca3e3051b",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "r0H8pDGQS200DDPZ",
+          "name": "Postgres account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "chatId": "5547668418",
+        "text": "={{$json.alert}}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1840,
+        -336
+      ],
+      "id": "c72f2f3f-ab32-4b52-920b-1910867cbf0d",
+      "name": "Send a text message",
+      "webhookId": "b3aa53c2-e7c6-41d4-8fee-84a9f8b6ba04",
+      "credentials": {
+        "telegramApi": {
+          "id": "lXbI36Z6KbcRa7c6",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "08bfa76a-165d-4162-9acb-a6f81a9dd40a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c233eb9980a446e2eb7d17118d2fb8a44af6c44b4a650d874162331a9a4d92b8"
+  },
+  "id": "TS0lKW7NCCtWEA5F",
+  "tags": []
+}
